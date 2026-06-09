@@ -6,19 +6,24 @@ const gameBoard = (function() {
     let nTokensPlaced;
     let currentPlayer;
     let lastSpotOccupied;
+    let spotsCoordinates;
 
     /* - - - Getters & Setters - - - */
     function getCurrentPlayer() { return currentPlayer; }
+    function setCurrentPlayer(newPlayer) { currentPlayer = newPlayer };
     function getBoard() { return board; }
     function getLastSpotOccupied() { return lastSpotOccupied };
     function setLastSpotOccupied(spot) { lastSpotOccupied = spot };
+    function getSpotsCoordinates() { return spotsCoordinates };
+    function setSpotsCoordinates(leftSpotsCoordinates) { spotsCoordinates = leftSpotsCoordinates };
 
     /* - - - Functions - - - */
     // Initialize game
     function initGame() {
         board = [ [], [], [] ];
         nTokensPlaced = 0;
-        currentPlayer = 'X';
+        //currentPlayer = 'X';
+        spotsCoordinates = ['00', '01', '02', '10', '11', '12', '20', '21', '22'];
     }
     
     // Place a token in the board ( X - O )
@@ -95,8 +100,8 @@ const gameBoard = (function() {
         else currentPlayer = 'X';
     }
 
-    // Return a board object with its methods
-    return { placeTokenPosition, checkWinner, initGame, changeToken, getCurrentPlayer, getBoard, getLastSpotOccupied, setLastSpotOccupied };
+    /* - - - Return a board object with its methods - - - */
+    return { placeTokenPosition, checkWinner, initGame, changeToken, setCurrentPlayer, getCurrentPlayer, getBoard, getLastSpotOccupied, setLastSpotOccupied, getSpotsCoordinates, setSpotsCoordinates };
 
 })();
 
@@ -109,21 +114,12 @@ function createPlayer(assignedToken) {
     let victories;
 
     /* - - - Getters & Setters - - -*/
-    function setName(newName) {
-        name = newName;
-    }
-
-    function getName() {
-        return name;
-    }
-
-    function setVictories(newVictories) {
-        victories = newVictories;
-    }
-
-    function getVictories() {
-        return victories;
-    }
+    function setName(newName) { name = newName; }
+    function getName() { return name; }
+    function getToken() { return token };
+    function setToken(newToken) { token = newToken };
+    function setVictories(newVictories) { victories = newVictories; }
+    function getVictories() { return victories; }
 
     /* - - - Functions - - - */
     function initPlayer() { 
@@ -132,16 +128,11 @@ function createPlayer(assignedToken) {
         victories = 0;
     }
 
-    function resetVictories() {
-        setVictories(0);
-    }
-
-    function increaseVictory() {
-        setVictories(getVictories() + 1);
-    }
+    function resetVictories() { setVictories(0); }
+    function increaseVictory() { setVictories(getVictories() + 1); }
 
     /* - - - Returned object - - - */
-    return { setName, getName, setVictories, getVictories, resetVictories, initPlayer, increaseVictory }
+    return { setName, getName, setVictories, getVictories, resetVictories, initPlayer, increaseVictory, getToken, setToken }
 }
 
 const player_X = createPlayer('X');
@@ -151,25 +142,97 @@ const player_O = createPlayer('O');
 // Game flow
 const gameController = (function() {
 
+    let gameMode;
+
     // Initialize players
     function initPlayers() {
+        // Create players objects
         player_X.initPlayer();
-        player_X.setName(prompt('Nickname player X'));
-
         player_O.initPlayer();
-        player_O.setName(prompt('Nickname player O'));
-    }
+        
+        // Ask game mode (player types)
+        gameMode = prompt('PP / PC / CC');
 
+        switch (gameMode) {
+            case 'PP':
+                player_X.setName(prompt('Enter nickname player X'));
+                player_O.setName(prompt('Enter nickname player O'));
+                break;
+
+            case 'PC':
+                player_X.setName(prompt('Enter nickname'));
+                player_O.setName('Computer');
+                break;
+
+            case 'CC':
+                player_X.setName('Computer 1');
+                player_O.setName('Computer 2');
+                break;
+        }
+    }
+    
     // Play round
     function playRound() {
         let playAgain = false;
 
         do {
             gameBoard.initGame();
-            
+            gameBoard.changeToken();
+            let coordinate;
+
             while (true) {
-                // Ask and place the current token in position
-                let coordinate = prompt('Coordinate');
+                // Ask for the current coordinate
+                switch (gameMode) {
+                    case 'PP':
+                        coordinate = prompt('Coordinate');
+                        const coordinateIndex = gameBoard.getSpotsCoordinates().indexOf(coordinate);
+                        gameBoard.getSpotsCoordinates().splice(coordinateIndex, 1);
+                        break;
+
+                    case 'PC':
+                        // If is the player turn (X), ask for the coordinate
+                        if (player_X.getToken() == gameBoard.getCurrentPlayer()) {
+                            if (player_X.getName() != 'Computer') {
+                                coordinate = prompt('Coordinate');
+                                const coordinateIndex = gameBoard.getSpotsCoordinates().indexOf(coordinate);
+                                gameBoard.getSpotsCoordinates().splice(coordinateIndex, 1);
+                            }
+                            
+                            // Else, it is the computer turn, take a random spot
+                            else {
+                                const randomCoordinateIndex = Math.floor(Math.random() * gameBoard.getSpotsCoordinates().length);
+                                coordinate = gameBoard.getSpotsCoordinates()[randomCoordinateIndex];
+                                gameBoard.getSpotsCoordinates().splice(randomCoordinateIndex, 1);
+                            }
+                        }
+
+                        // If is the player turn (O), ask for the coordinate
+                        else if (player_O.getToken() == gameBoard.getCurrentPlayer()) {
+                            if (player_O.getName() != 'Computer') {
+                                coordinate = prompt('Coordinate');
+                                const coordinateIndex = gameBoard.getSpotsCoordinates().indexOf(coordinate);
+                                gameBoard.getSpotsCoordinates().splice(coordinateIndex, 1);
+                            }
+                            
+                            // Else, it is the computer turn, take a random spot
+                            else {
+                                const randomCoordinateIndex = Math.floor(Math.random() * gameBoard.getSpotsCoordinates().length);
+                                coordinate = gameBoard.getSpotsCoordinates()[randomCoordinateIndex];
+                                gameBoard.getSpotsCoordinates().splice(randomCoordinateIndex, 1);
+                            }
+                        }
+                        break;
+
+                    case 'CC':
+                        // Take a random spot
+                        const randomCoordinateIndex = Math.floor(Math.random() * gameBoard.getSpotsCoordinates().length);
+                        coordinate = gameBoard.getSpotsCoordinates()[randomCoordinateIndex];
+                        gameBoard.getSpotsCoordinates().splice(randomCoordinateIndex, 1);
+                        break;
+                }
+
+                // Place the current token in position
+                console.log(coordinate);
                 gameBoard.placeTokenPosition(coordinate);
                 console.log(gameBoard.getBoard());
 
